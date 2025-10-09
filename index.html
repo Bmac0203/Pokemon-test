@@ -1,1 +1,192 @@
-<script src="./index.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Adventure</title>
+<style>
+body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+#game { max-width: 700px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
+button { margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; background-color: #4CAF50; color: white; }
+button:hover { background-color: #45a049; }
+#log { white-space: pre-line; border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; max-height: 200px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div id="game">
+  <h1>Pokémon Adventure</h1>
+  <div id="status"></div>
+  <div id="options"></div>
+  <div id="log"></div>
+</div>
+
+<script>
+// --- Game Variables ---
+let playerName = 'Trainer';
+let starter = null;
+let playerHP = 50;
+let playerXP = 0;
+let playerLevel = 1;
+let items = { 'Potion 💊': 3, 'Catch Cube 🟦': 5 };
+let town = 'Starting Town';
+let currentMonster = null;
+
+// --- Pokémon List (50 Pokémon) ---
+const pokemonList = [
+  {name:'Bulbasaur', type:'Grass/Poison', HP:45, attack:49},
+  {name:'Ivysaur', type:'Grass/Poison', HP:60, attack:62},
+  {name:'Venusaur', type:'Grass/Poison', HP:80, attack:82},
+  {name:'Charmander', type:'Fire', HP:39, attack:52},
+  {name:'Charmeleon', type:'Fire', HP:58, attack:64},
+  {name:'Charizard', type:'Fire/Flying', HP:78, attack:84},
+  {name:'Squirtle', type:'Water', HP:44, attack:48},
+  {name:'Wartortle', type:'Water', HP:59, attack:63},
+  {name:'Blastoise', type:'Water', HP:79, attack:83},
+  {name:'Pikachu', type:'Electric', HP:35, attack:55},
+  {name:'Raichu', type:'Electric', HP:60, attack:90},
+  {name:'Sandshrew', type:'Ground', HP:50, attack:75},
+  {name:'Sandslash', type:'Ground', HP:75, attack:100},
+  {name:'Nidoran♀', type:'Poison', HP:55, attack:47},
+  {name:'Nidorina', type:'Poison', HP:70, attack:62},
+  {name:'Nidoqueen', type:'Poison/Ground', HP:90, attack:92},
+  {name:'Nidoran♂', type:'Poison', HP:46, attack:57},
+  {name:'Nidorino', type:'Poison', HP:61, attack:72},
+  {name:'Nidoking', type:'Poison/Ground', HP:81, attack:102},
+  {name:'Clefairy', type:'Fairy', HP:70, attack:45},
+  {name:'Clefable', type:'Fairy', HP:95, attack:70},
+  {name:'Vulpix', type:'Fire', HP:38, attack:41},
+  {name:'Ninetales', type:'Fire', HP:73, attack:76},
+  {name:'Jigglypuff', type:'Normal/Fairy', HP:115, attack:45},
+  {name:'Wigglytuff', type:'Normal/Fairy', HP:140, attack:70},
+  {name:'Zubat', type:'Poison/Flying', HP:40, attack:45},
+  {name:'Golbat', type:'Poison/Flying', HP:75, attack:80},
+  {name:'Oddish', type:'Grass/Poison', HP:45, attack:50},
+  {name:'Gloom', type:'Grass/Poison', HP:60, attack:65},
+  {name:'Vileplume', type:'Grass/Poison', HP:75, attack:90},
+  {name:'Paras', type:'Bug/Grass', HP:35, attack:70},
+  {name:'Parasect', type:'Bug/Grass', HP:60, attack:95},
+  {name:'Venonat', type:'Bug/Poison', HP:60, attack:55},
+  {name:'Venomoth', type:'Bug/Poison', HP:70, attack:65},
+  {name:'Diglett', type:'Ground', HP:10, attack:55},
+  {name:'Dugtrio', type:'Ground', HP:35, attack:100},
+  {name:'Meowth', type:'Normal', HP:40, attack:45},
+  {name:'Persian', type:'Normal', HP:65, attack:70},
+  {name:'Psyduck', type:'Water', HP:50, attack:52},
+  {name:'Golduck', type:'Water', HP:80, attack:82},
+  {name:'Machop', type:'Fighting', HP:70, attack:80},
+  {name:'Machoke', type:'Fighting', HP:80, attack:100},
+  {name:'Machamp', type:'Fighting', HP:90, attack:130},
+  {name:'Bellsprout', type:'Grass/Poison', HP:50, attack:75},
+  {name:'Weepinbell', type:'Grass/Poison', HP:65, attack:90},
+  {name:'Victreebel', type:'Grass/Poison', HP:80, attack:105},
+  {name:'Tentacool', type:'Water/Poison', HP:40, attack:40},
+  {name:'Tentacruel', type:'Water/Poison', HP:80, attack:70}
+];
+
+// --- Gyms (9 Gyms) ---
+const gyms = [
+  {name:'Rocky Gym 🪨', monster:{name:'Stone Turtle 🐢', HP:60, attack:15}, rewardXP:50},
+  {name:'Flame Gym 🔥', monster:{name:'Blaze Lizard 🔥', HP:65, attack:18}, rewardXP:60},
+  {name:'Water Gym 💧', monster:{name:'Splash Turtle 💧', HP:70, attack:20}, rewardXP:65},
+  {name:'Forest Gym 🌿', monster:{name:'Leaf Beast 🌿', HP:75, attack:22}, rewardXP:70},
+  {name:'Electric Gym ⚡', monster:{name:'Shock Mouse ⚡', HP:80, attack:25}, rewardXP:75},
+  {name:'Ice Gym ❄️', monster:{name:'Frost Wolf ❄️', HP:85, attack:28}, rewardXP:80},
+  {name:'Dark Gym 🌑', monster:{name:'Shadow Crow 🌑', HP:90, attack:30}, rewardXP:85},
+  {name:'Dragon Gym 🐉', monster:{name:'Fire Dragon 🐉', HP:95, attack:35}, rewardXP:90},
+  {name:'Master Gym 🏆', monster:{name:'Legend Beast 🏆', HP:120, attack:45}, rewardXP:100}
+];
+
+// --- DOM Elements ---
+const statusDiv = document.getElementById('status');
+const optionsDiv = document.getElementById('options');
+const logDiv = document.getElementById('log');
+
+function log(msg){ logDiv.textContent += msg+'\n'; logDiv.scrollTop = logDiv.scrollHeight; }
+function updateStatus(){ statusDiv.innerHTML=`<strong>${playerName}</strong><br>HP: ${playerHP} | Level: ${playerLevel} | XP: ${playerXP}<br>Potion: ${items['Potion 💊']} | Catch Cube: ${items['Catch Cube 🟦']}`; }
+
+// --- Game Functions ---
+function chooseStarter(){
+  optionsDiv.innerHTML='';
+  log('Choose your starter Pokémon:');
+  ['Bulbasaur 🌱','Charmander 🔥','Squirtle 💧'].forEach((s,i)=>{
+    const btn = document.createElement('button');
+    btn.textContent=s;
+    btn.onclick=()=>{ starter=pokemonList[i]; playerHP=starter.HP; log(`You chose ${starter.name}!`); updateStatus(); mainMenu(); };
+    optionsDiv.appendChild(btn);
+  });
+}
+
+function gainXP(amount){ playerXP+=amount; log(`You gained ${amount} XP! Total XP: ${playerXP}`); if(playerXP>=playerLevel*20){playerLevel++; playerHP=starter.HP; log(`Level Up! You are now level ${playerLevel}. HP restored.`);} updateStatus(); }
+
+function getRandomPokemon(){ return pokemonList[Math.floor(Math.random()*pokemonList.length)]; }
+
+function battle(monster, rewardXP=10){
+  currentMonster={...monster};
+  log(`A wild ${currentMonster.name} appeared! HP: ${currentMonster.HP}`);
+  updateStatus();
+  showBattleOptions();
+}
+
+function showBattleOptions(){
+  optionsDiv.innerHTML='';
+  ['Fight ⚔️','Run 🏃','Bag 🎒'].forEach(action=>{
+    const btn=document.createElement('button');
+    btn.textContent=action;
+    btn.onclick=()=>{ if(action==='Fight ⚔️') fight(); else if(action==='Run 🏃') run(); else if(action==='Bag 🎒') bag(); };
+    optionsDiv.appendChild(btn);
+  });
+}
+
+function fight(){
+  const damage=starter.attack+Math.floor(Math.random()*5);
+  currentMonster.HP-=damage;
+  log(`You attacked! ${currentMonster.name} HP: ${currentMonster.HP}`);
+  if(currentMonster.HP<=0){ log(`You defeated ${currentMonster.name}!`); gainXP(10); mainMenu(); return; }
+  const monsterDamage=currentMonster.attack+Math.floor(Math.random()*5);
+  playerHP-=monsterDamage;
+  log(`${currentMonster.name} attacked back! Your HP: ${playerHP}`);
+  updateStatus();
+  if(playerHP<=0){ log('You fainted! Game Over 💀'); optionsDiv.innerHTML=''; return; }
+}
+
+function run(){ if(Math.random()<0.5){ log('You ran away safely!'); mainMenu(); } else { log('Failed to run! Monster attacks!'); playerHP-=currentMonster.attack+Math.floor(Math.random()*5); updateStatus(); if(playerHP<=0){ log('You fainted! Game Over 💀'); optionsDiv.innerHTML=''; return; } } }
+
+function bag(){
+  optionsDiv.innerHTML='';
+  ['Potion 💊','Catch Cube 🟦'].forEach(item=>{
+    const btn=document.createElement('button');
+    btn.textContent=`${item} (${items[item]})`;
+    btn.onclick=()=>{
+      if(item==='Potion 💊' && items[item]>0){playerHP+=20; items[item]--; log(`You used a Potion! HP: ${playerHP}`); updateStatus(); showBattleOptions(); }
+      else if(item==='Catch Cube 🟦' && items[item]>0){items[item]--; if(Math.random()<0.5){log(`You caught ${currentMonster.name}! 🟦`); mainMenu();} else {log('The monster escaped!'); showBattleOptions();} updateStatus(); }
+      else{log('Invalid or no items left!'); showBattleOptions();}
+    };
+    optionsDiv.appendChild(btn);
+  });
+}
+
+function mainMenu(){
+  optionsDiv.innerHTML='';
+  log(`\nWelcome to ${town}! Choose your action:`);
+  ['Heal 🏥','Train 💪','Gym Challenge 🏆','Go Wild 🌲','Save 💾','Load 📂'].forEach(action=>{
+    const btn=document.createElement('button');
+    btn.textContent=action;
+    btn.onclick=()=>{
+      if(action==='Heal 🏥'){ playerHP=starter.HP; log('Your Pokémon have been healed!'); updateStatus(); }
+      else if(action==='Train 💪'){ gainXP(15); log('You trained hard and gained XP!'); }
+      else if(action==='Gym Challenge 🏆'){ const gym=gyms[Math.floor(Math.random()*gyms.length)]; log(`You challenge the ${gym.name}!`); battle(gym.monster,gym.rewardXP); }
+      else if(action==='Go Wild 🌲'){ battle(getRandomPokemon(),10); }
+      else if(action==='Save 💾'){ log('Game saved! (simulated)'); }
+      else if(action==='Load 📂'){ log('Game loaded! (simulated)'); }
+    };
+    optionsDiv.appendChild(btn);
+  });
+  updateStatus();
+}
+
+// --- Start Game ---
+chooseStarter();
+</script>
+</body>
+</html>
+
