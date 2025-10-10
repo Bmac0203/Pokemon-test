@@ -41,7 +41,7 @@ const starters=[
 {name:'Squirtle',type:'Water',HP:44,attack:48,evolution:'Wartortle',evoLvl:16}
 ];
 
-// Some wild Pokémon (expandable)
+// Some wild Pokémon
 const monsters=[
 {name:'Pidgey',type:'Normal/Flying',HP:40,attack:45,rarity:1},
 {name:'Rattata',type:'Normal',HP:30,attack:56,rarity:1},
@@ -60,6 +60,7 @@ const gyms=[
 const status=document.getElementById('status');
 const options=document.getElementById('options');
 const logDiv=document.getElementById('log');
+
 function log(t){logDiv.textContent+=t+'\n';logDiv.scrollTop=logDiv.scrollHeight;}
 function updateStatus(){
 if(state.pokemons.length>0){
@@ -107,7 +108,7 @@ else if(a==='Run 🏃'){log('You fled!');mainMenu();}
 function fight(reward){
 let p=state.pokemons[state.activeIndex];const dmg=p.attack+Math.floor(Math.random()*5);
 state.current.hp-=dmg;log(`${p.name} hit ${state.current.name} for ${dmg} damage (${Math.max(state.current.hp,0)} HP left)`);
-if(state.current.hp<=0){log(`You defeated ${state.current.name}! +${reward} XP`);gainXP(reward);state.coins+=Math.floor(Math.random()*10)+5;mainMenu();return;}
+if(state.current.hp<=0){log(`You defeated ${state.current.name}! +${reward} XP`);gainXP(reward);state.coins+=reward;mainMenu();return;}
 const mdmg=state.current.attack+Math.floor(Math.random()*4);
 p.hp-=mdmg;log(`${state.current.name} hit back for ${mdmg} damage (${Math.max(p.hp,0)} HP left)`);updateStatus();
 if(p.hp<=0){log(`${p.name} fainted! Switching Pokémon...`);switchPokemonBattle();}}
@@ -144,12 +145,31 @@ const btn=document.createElement('button');btn.textContent=`${p.name} (${p.hp}/$
 const back=document.createElement('button');back.textContent='Back';back.onclick=()=>mainMenu();options.appendChild(back);
 }
 
+// Shop
+function openShop(){
+options.innerHTML='';
+log('🛒 Welcome to the shop! You can buy Potions and Poké Balls.');
+const itemsForSale=[{name:'Potion 💊',price:20},{name:'Poké Ball 🟦',price:50}];
+itemsForSale.forEach(it=>{
+const btn=document.createElement('button');
+btn.textContent=`Buy ${it.name} for ${it.price} coins`;
+btn.onclick=()=>{
+if(state.coins>=it.price){state.coins-=it.price;state.items[it.name]=(state.items[it.name]||0)+1;log(`You bought 1 ${it.name}!`);updateStatus();}
+else log('Not enough coins!');
+};
+options.appendChild(btn);
+});
+const back=document.createElement('button');back.textContent='Back';back.onclick=()=>mainMenu();options.appendChild(back);
+}
+
+// Main menu
 function mainMenu(){
 options.innerHTML='';log(`\nWelcome to ${state.town}. Choose your action:`);
-['Explore 🌿','Gym ⚔️','Heal 💧','Save 💾','Load 📂','Pokédex 📖','Switch Pokémon 🔄'].forEach(a=>{
+['Explore 🌿','Gym ⚔️','Shop 🛒','Heal 💧','Save 💾','Load 📂','Pokédex 📖','Switch Pokémon 🔄'].forEach(a=>{
 const btn=document.createElement('button');btn.textContent=a;btn.onclick=()=>{
 if(a==='Explore 🌿') battle(getRandomMonster(),10);
 else if(a==='Gym ⚔️'){const gym=gyms[Math.min(state.level-1,gyms.length-1)];battle({...gym},gym.reward);}
+else if(a==='Shop 🛒') openShop();
 else if(a==='Heal 💧'){state.pokemons.forEach(p=>p.hp=p.maxHp);log('All Pokémon healed!');updateStatus();}
 else if(a==='Save 💾') saveGame();
 else if(a==='Load 📂') loadGame();
@@ -159,6 +179,7 @@ else if(a==='Switch Pokémon 🔄') switchPokemonMenu();
 updateStatus();
 }
 
+// Start
 log('Starting Pokémon Adventure...');
 const save=localStorage.getItem('pokeAdventureSave');
 if(save){state=JSON.parse(save);log('📂 Save loaded!');updateStatus();mainMenu();}
