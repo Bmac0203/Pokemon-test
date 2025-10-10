@@ -1,219 +1,305 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pokémon Adventure</title>
-<style>
-body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
-#game { max-width: 700px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
-button { margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; background-color: #4CAF50; color: white; }
-button:hover { background-color: #45a049; }
-#log { white-space: pre-line; border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; max-height: 200px; overflow-y: auto; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokéLite</title>
+  <style>
+    body {
+      background: #0d0f1a;
+      color: #d0d6f9;
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .game {
+      background: #12131f;
+      border: 1px solid #1f1f30;
+      border-radius: 16px;
+      box-shadow: 0 0 20px #1a1b2d;
+      width: 420px;
+      max-width: 90%;
+      padding: 20px;
+      text-align: center;
+    }
+    .title {
+      font-size: 1.4em;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .log {
+      background: #0e0f1b;
+      border-radius: 10px;
+      padding: 10px;
+      height: 180px;
+      overflow-y: auto;
+      text-align: left;
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+    .btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    button {
+      background: #1f1f30;
+      color: #d0d6f9;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #2a2a45; }
+    .stats {
+      margin-bottom: 10px;
+      font-size: 0.9em;
+      color: #aab0d0;
+    }
+  </style>
 </head>
 <body>
-<div id="game">
-  <h1>Pokémon Adventure</h1>
-  <div id="status"></div>
-  <div id="options"></div>
-  <div id="log"></div>
-</div>
+  <div class="game">
+    <div class="title">PokéLite</div>
+    <div class="stats" id="stats"></div>
+    <div class="log" id="log"></div>
+    <div class="btns" id="buttons"></div>
+  </div>
 
-<script>
-// --- Game Variables ---
-let playerName = 'Trainer';
-let starter = null;
-let playerHP = 50;
-let playerXP = 0;
-let playerLevel = 1;
-let items = { 'Potion 💊': 3, 'Catch Cube 🟦': 5 };
-let town = 'Starting Town';
-let currentMonster = null;
-let capturedPokemons = [];
+  <script>
+    const $log = document.getElementById("log");
+    const $buttons = document.getElementById("buttons");
+    const $stats = document.getElementById("stats");
 
-// --- Pokémon List with Evolutions ---
-const pokemonList = [
-  { name:'Bulbasaur', type:'Grass/Poison', HP:45, attack:49, evolution:'Ivysaur', evolutionLevel:16 },
-  { name:'Ivysaur', type:'Grass/Poison', HP:60, attack:62, evolution:'Venusaur', evolutionLevel:32 },
-  { name:'Venusaur', type:'Grass/Poison', HP:80, attack:82, evolution:null, evolutionLevel:null },
-  { name:'Charmander', type:'Fire', HP:39, attack:52, evolution:'Charmeleon', evolutionLevel:16 },
-  { name:'Charmeleon', type:'Fire', HP:58, attack:64, evolution:'Charizard', evolutionLevel:36 },
-  { name:'Charizard', type:'Fire/Flying', HP:78, attack:84, evolution:null, evolutionLevel:null },
-  { name:'Squirtle', type:'Water', HP:44, attack:48, evolution:'Wartortle', evolutionLevel:16 },
-  { name:'Wartortle', type:'Water', HP:59, attack:63, evolution:'Blastoise', evolutionLevel:36 },
-  { name:'Blastoise', type:'Water', HP:79, attack:83, evolution:null, evolutionLevel:null },
-  { name:'Pikachu', type:'Electric', HP:35, attack:55, evolution:'Raichu', evolutionLevel:null }, // evolves with Thunder Stone
-  { name:'Raichu', type:'Electric', HP:60, attack:90, evolution:null, evolutionLevel:null },
-  { name:'Sandshrew', type:'Ground', HP:50, attack:75, evolution:'Sandslash', evolutionLevel:22 },
-  { name:'Sandslash', type:'Ground', HP:75, attack:100, evolution:null, evolutionLevel:null },
-  { name:'Nidoran♀', type:'Poison', HP:55, attack:47, evolution:'Nidorina', evolutionLevel:16 },
-  { name:'Nidorina', type:'Poison', HP:70, attack:62, evolution:'Nidoqueen', evolutionLevel:null }, // evolves with Moon Stone
-  { name:'Nidoqueen', type:'Poison/Ground', HP:90, attack:92, evolution:null, evolutionLevel:null },
-  { name:'Nidoran♂', type:'Poison', HP:46, attack:57, evolution:'Nidorino', evolutionLevel:16 },
-  { name:'Nidorino', type:'Poison', HP:61, attack:72, evolution:'Nidoking', evolutionLevel:null }, // evolves with Moon Stone
-  { name:'Nidoking', type:'Poison/Ground', HP:81, attack:102, evolution:null, evolutionLevel:null },
-  { name:'Clefairy', type:'Fairy', HP:70, attack:45, evolution:'Clefable', evolutionLevel:null }, // Moon Stone
-  { name:'Clefable', type:'Fairy', HP:95, attack:70, evolution:null, evolutionLevel:null },
-  { name:'Vulpix', type:'Fire', HP:38, attack:41, evolution:'Ninetales', evolutionLevel:null }, // Fire Stone
-  { name:'Ninetales', type:'Fire', HP:73, attack:76, evolution:null, evolutionLevel:null },
-  { name:'Jigglypuff', type:'Normal/Fairy', HP:115, attack:45, evolution:'Wigglytuff', evolutionLevel:null }, // Moon Stone
-  { name:'Wigglytuff', type:'Normal/Fairy', HP:140, attack:70, evolution:null, evolutionLevel:null },
-  { name:'Zubat', type:'Poison/Flying', HP:40, attack:45, evolution:'Golbat', evolutionLevel:22 },
-  { name:'Golbat', type:'Poison/Flying', HP:75, attack:80, evolution:null, evolutionLevel:null },
-  { name:'Oddish', type:'Grass/Poison', HP:45, attack:50, evolution:'Gloom', evolutionLevel:21 },
-  { name:'Gloom', type:'Grass/Poison', HP:60, attack:65, evolution:'Vileplume', evolutionLevel:null }, // Leaf Stone
-  { name:'Vileplume', type:'Grass/Poison', HP:75, attack:90, evolution:null, evolutionLevel:null },
-  { name:'Paras', type:'Bug/Grass', HP:35, attack:70, evolution:'Parasect', evolutionLevel:24 },
-  { name:'Parasect', type:'Bug/Grass', HP:60, attack:95, evolution:null, evolutionLevel:null },
-  { name:'Venonat', type:'Bug/Poison', HP:60, attack:55, evolution:'Venomoth', evolutionLevel:31 },
-  { name:'Venomoth', type:'Bug/Poison', HP:70, attack:65, evolution:null, evolutionLevel:null },
-  { name:'Diglett', type:'Ground', HP:10, attack:55, evolution:'Dugtrio', evolutionLevel:26 },
-  { name:'Dugtrio', type:'Ground', HP:35, attack:100, evolution:null, evolutionLevel:null },
-  { name:'Meowth', type:'Normal', HP:40, attack:45, evolution:'Persian', evolutionLevel:28 },
-  { name:'Persian', type:'Normal', HP:65, attack:70, evolution:null, evolutionLevel:null },
-  { name:'Psyduck', type:'Water', HP:50, attack:52, evolution:'Golduck', evolutionLevel:33 },
-  { name:'Golduck', type:'Water', HP:80, attack:82, evolution:null, evolutionLevel:null },
-  { name:'Machop', type:'Fighting', HP:70, attack:80, evolution:'Machoke', evolutionLevel:28 },
-  { name:'Machoke', type:'Fighting', HP:80, attack:100, evolution:'Machamp', evolutionLevel:null }, // trade
-  { name:'Machamp', type:'Fighting', HP:90, attack:130, evolution:null, evolutionLevel:null },
-  { name:'Bellsprout', type:'Grass/Poison', HP:50, attack:75, evolution:'Weepinbell', evolutionLevel:21 },
-  { name:'Weepinbell', type:'Grass/Poison', HP:65, attack:90, evolution:'Victreebel', evolutionLevel:null }, // Leaf Stone
-  { name:'Victreebel', type:'Grass/Poison', HP:80, attack:105, evolution:null, evolutionLevel:null },
-  { name:'Tentacool', type:'Water/Poison', HP:40, attack:40, evolution:'Tentacruel', evolutionLevel:30 },
-  { name:'Tentacruel', type:'Water/Poison', HP:80, attack:70, evolution:null, evolutionLevel:null }
-];
+    function log(t) {
+      $log.innerHTML += `<div>${t}</div>`;
+      $log.scrollTop = $log.scrollHeight;
+    }
 
-// --- Gyms (9 Gyms) ---
-const gyms = [
-  {name:'Rocky Gym 🪨', monster:{name:'Stone Turtle 🐢', HP:60, attack:15}, rewardXP:50},
-  {name:'Flame Gym 🔥', monster:{name:'Blaze Lizard 🔥', HP:65, attack:18}, rewardXP:60},
-  {name:'Water Gym 💧', monster:{name:'Splash Turtle 💧', HP:70, attack:20}, rewardXP:65},
-  {name:'Forest Gym 🌿', monster:{name:'Leaf Beast 🌿', HP:75, attack:22}, rewardXP:70},
-  {name:'Electric Gym ⚡', monster:{name:'Shock Mouse ⚡', HP:80, attack:25}, rewardXP:75},
-  {name:'Ice Gym ❄️', monster:{name:'Frost Wolf ❄️', HP:85, attack:28}, rewardXP:80},
-  {name:'Dark Gym 🌑', monster:{name:'Shadow Crow 🌑', HP:90, attack:30}, rewardXP:85},
-  {name:'Dragon Gym 🐉', monster:{name:'Fire Dragon 🐉', HP:95, attack:35}, rewardXP:90},
-  {name:'Master Gym 🏆', monster:{name:'Legend Beast 🏆', HP:120, attack:45}, rewardXP:100}
-];
+    const monsters = [
+      { name: "Flamion", type: "Fire", evolve: "Blazion" },
+      { name: "Aquava", type: "Water", evolve: "Tsunava" },
+      { name: "Leaflit", type: "Grass", evolve: "Florath" },
+      { name: "Sparka", type: "Electric", evolve: "Voltair" },
+      { name: "Stonox", type: "Rock", evolve: "Granidon" },
+      { name: "Venomix", type: "Poison", evolve: "Toxira" },
+      { name: "Frosto", type: "Ice", evolve: "Cryon" },
+      { name: "Shadowl", type: "Dark", evolve: "Umbrax" },
+      { name: "Pyroca", type: "Fire", evolve: "Volcaon" },
+      { name: "Seapho", type: "Water", evolve: "Hydros" },
+      { name: "Terraxa", type: "Ground", evolve: "Geozaur" },
+      { name: "Aerial", type: "Flying", evolve: "Skyris" },
+      { name: "Psychon", type: "Psychic", evolve: "Mindor" },
+      { name: "Boulder", type: "Rock", evolve: "Graniton" },
+      { name: "Inferno", type: "Fire", evolve: null },
+      { name: "Zephyra", type: "Flying", evolve: null },
+      { name: "Tundra", type: "Ice", evolve: null },
+      { name: "Voltusk", type: "Electric", evolve: null },
+    ];
 
-// --- DOM Elements ---
-const statusDiv = document.getElementById('status');
-const optionsDiv = document.getElementById('options');
-const logDiv = document.getElementById('log');
+    let player = {
+      name: "",
+      monster: null,
+      level: 1,
+      xp: 0,
+      hp: 50,
+      pokeballs: 5,
+      potions: 2,
+      captured: [],
+      gymWins: 0
+    };
 
-function log(msg){ logDiv.textContent += msg+'\n'; logDiv.scrollTop = logDiv.scrollHeight; }
-function updateStatus(){ statusDiv.innerHTML=`<strong>${playerName}</strong><br>HP: ${playerHP} | Level: ${playerLevel} | XP: ${playerXP}<br>Potion: ${items['Potion 💊']} | Catch Cube: ${items['Catch Cube 🟦']}`; }
+    let enemy = null;
+    let state = "start";
 
-// --- Game Functions ---
-function chooseStarter(){
-  optionsDiv.innerHTML='';
-  log('Choose your starter Pokémon:');
-  ['Bulbasaur 🌱','Charmander 🔥','Squirtle 💧'].forEach((s,i)=>{
-    const btn = document.createElement('button');
-    btn.textContent=s;
-    btn.onclick=()=>{ starter=pokemonList[i]; playerHP=starter.HP; log(`You chose ${starter.name}!`); updateStatus(); mainMenu(); };
-    optionsDiv.appendChild(btn);
-  });
-}
+    function saveGame() {
+      localStorage.setItem("pokelite_save", JSON.stringify(player));
+      log("💾 Game saved!");
+    }
 
-function gainXP(amount){
-  playerXP += amount;
-  log(`You gained ${amount} XP! Total XP: ${playerXP}`);
-  if(starter.evolution && ((starter.evolutionLevel && playerLevel >= starter.evolutionLevel) || !starter.evolutionLevel)){
-    evolvePokemon();
-  }
-  updateStatus();
-}
+    function loadGame() {
+      const save = localStorage.getItem("pokelite_save");
+      if (save) {
+        player = JSON.parse(save);
+        log("📂 Game loaded!");
+        updateStats();
+        mainMenu();
+      } else log("No save found.");
+    }
 
-function evolvePokemon(){
-  const evoName = starter.evolution;
-  const evoData = pokemonList.find(p => p.name === evoName);
-  if(evoData){
-    log(`${starter.name} evolved into ${evoData.name}! 🎉`);
-    starter.name = evoData.name;
-    starter.type = evoData.type;
-    starter.HP = evoData.HP;
-    starter.attack = evoData.attack;
-    starter.evolution = evoData.evolution;
-    starter.evolutionLevel = evoData.evolutionLevel;
-    playerHP = starter.HP;
-    updateStatus();
-  }
-}
+    function updateStats() {
+      $stats.innerHTML = `
+        <b>${player.name}</b> — Lv ${player.level} — ${player.hp} HP<br>
+        Pokéballs: ${player.pokeballs}, Potions: ${player.potions}, Gyms: ${player.gymWins}
+      `;
+    }
 
-function getRandomPokemon(){ return pokemonList[Math.floor(Math.random()*pokemonList.length)]; }
+    function clearButtons() { $buttons.innerHTML = ""; }
 
-function battle(monster, rewardXP=10){
-  currentMonster={...monster};
-  log(`A wild ${currentMonster.name} appeared! HP: ${currentMonster.HP}`);
-  updateStatus();
-  showBattleOptions(rewardXP);
-}
-
-function showBattleOptions(rewardXP){
-  optionsDiv.innerHTML='';
-  ['Fight ⚔️','Run 🏃','Bag 🎒'].forEach(action=>{
-    const btn=document.createElement('button');
-    btn.textContent=action;
-    btn.onclick=()=>{ if(action==='Fight ⚔️') fight(rewardXP); else if(action==='Run 🏃') run(); else if(action==='Bag 🎒') bag(rewardXP); };
-    optionsDiv.appendChild(btn);
-  });
-}
-
-function fight(rewardXP){
-  const damage=starter.attack+Math.floor(Math.random()*5);
-  currentMonster.HP-=damage;
-  log(`You attacked! ${currentMonster.name} HP: ${currentMonster.HP}`);
-  if(currentMonster.HP<=0){ log(`You defeated ${currentMonster.name}!`); gainXP(rewardXP); mainMenu(); return; }
-  const monsterDamage=currentMonster.attack+Math.floor(Math.random()*5);
-  playerHP-=monsterDamage;
-  log(`${currentMonster.name} attacked back! Your HP: ${playerHP}`);
-  updateStatus();
-  if(playerHP<=0){ log('You fainted! Game Over 💀'); optionsDiv.innerHTML=''; return; }
-}
-
-function run(){ if(Math.random()<0.5){ log('You ran away safely!'); mainMenu(); } else { log('Failed to run! Monster attacks!'); playerHP-=currentMonster.attack+Math.floor(Math.random()*5); updateStatus(); if(playerHP<=0){ log('You fainted! Game Over 💀'); optionsDiv.innerHTML=''; return; } } }
-
-function bag(rewardXP){
-  optionsDiv.innerHTML='';
-  ['Potion 💊','Catch Cube 🟦'].forEach(item=>{
-    const btn=document.createElement('button');
-    btn.textContent=`${item} (${items[item]})`;
-    btn.onclick=()=>{
-      if(item==='Potion 💊' && items[item]>0){playerHP+=20; items[item]--; log(`You used a Potion! HP: ${playerHP}`); updateStatus(); showBattleOptions(rewardXP); }
-      else if(item==='Catch Cube 🟦' && items[item]>0){
-        items[item]--; 
-        if(Math.random()<0.5){log(`You caught ${currentMonster.name}! 🟦`); capturedPokemons.push(currentMonster); gainXP(Math.floor(rewardXP/2)); mainMenu();}
-        else {log('The monster escaped!'); showBattleOptions(rewardXP);}
-        updateStatus(); 
+    function setButtons(btns) {
+      clearButtons();
+      for (const [label, fn] of Object.entries(btns)) {
+        const b = document.createElement("button");
+        b.textContent = label;
+        b.onclick = fn;
+        $buttons.appendChild(b);
       }
-      else{log('Invalid or no items left!'); showBattleOptions(rewardXP);}
-    };
-    optionsDiv.appendChild(btn);
-  });
-}
+    }
 
-function mainMenu(){
-  optionsDiv.innerHTML='';
-  log(`\nWelcome to ${town}! Choose your action:`);
-  ['Heal 🏥','Gym Challenge 🏆','Go Wild 🌲','Save 💾','Load 📂'].forEach(action=>{
-    const btn=document.createElement('button');
-    btn.textContent=action;
-    btn.onclick=()=>{
-      if(action==='Heal 🏥'){ playerHP=starter.HP; log('Your Pokémon have been healed!'); updateStatus(); }
-      else if(action==='Gym Challenge 🏆'){ const gym=gyms[Math.floor(Math.random()*gyms.length)]; log(`You challenge the ${gym.name}!`); battle(gym.monster,gym.rewardXP); }
-      else if(action==='Go Wild 🌲'){ battle(getRandomPokemon(),10); }
-      else if(action==='Save 💾'){ log('Game saved! (simulated)'); }
-      else if(action==='Load 📂'){ log('Game loaded! (simulated)'); }
-    };
-    optionsDiv.appendChild(btn);
-  });
-  updateStatus();
-}
+    function startGame() {
+      state = "starter";
+      log("Welcome to PokéLite! Choose your starter:");
+      clearButtons();
+      monsters.slice(0, 3).forEach(m => {
+        const b = document.createElement("button");
+        b.textContent = m.name;
+        b.onclick = () => {
+          player.monster = JSON.parse(JSON.stringify(m));
+          player.captured.push(player.monster.name);
+          log(`You chose ${m.name}!`);
+          updateStats();
+          mainMenu();
+        };
+        $buttons.appendChild(b);
+      });
+    }
 
-// --- Start Game ---
-chooseStarter();
-</script>
+    function mainMenu() {
+      state = "menu";
+      setButtons({
+        "Explore 🌿": explore,
+        "Gym ⚔️": gymBattle,
+        "Heal 💧": heal,
+        "Save 💾": saveGame,
+        "Load 📂": loadGame
+      });
+    }
+
+    function explore() {
+      state = "explore";
+      log("You venture into the wild...");
+      if (Math.random() < 0.7) {
+        const wild = monsters[Math.floor(Math.random() * monsters.length)];
+        enemy = { ...wild, level: Math.floor(Math.random() * 5) + 1, hp: 30 + Math.random() * 20 };
+        log(`🌿 A wild ${enemy.name} appeared!`);
+        battleMenu();
+      } else {
+        log("You found a Potion!");
+        player.potions++;
+        updateStats();
+        mainMenu();
+      }
+    }
+
+    function battleMenu() {
+      setButtons({
+        "Attack ⚔️": attack,
+        "Item 🎒": useItem,
+        "Catch 🎯": catchMonster,
+        "Run 🏃": mainMenu
+      });
+    }
+
+    function attack() {
+      const dmg = Math.floor(Math.random() * 10) + 5 + player.level;
+      enemy.hp -= dmg;
+      log(`You dealt ${dmg} damage! ${enemy.name} has ${Math.max(enemy.hp, 0)} HP left.`);
+      if (enemy.hp <= 0) {
+        const xpGain = 10 + Math.floor(Math.random() * 10);
+        log(`You defeated ${enemy.name}! +${xpGain} XP`);
+        player.xp += xpGain;
+        if (player.xp >= player.level * 20) levelUp();
+        updateStats();
+        mainMenu();
+      } else {
+        const enemyDmg = Math.floor(Math.random() * 10) + enemy.level;
+        player.hp -= enemyDmg;
+        log(`${enemy.name} hit back for ${enemyDmg} damage!`);
+        if (player.hp <= 0) {
+          log("💀 You fainted! Returning to town...");
+          player.hp = 50;
+          mainMenu();
+        } else battleMenu();
+      }
+    }
+
+    function useItem() {
+      setButtons({
+        "Potion (+20 HP)": () => {
+          if (player.potions > 0) {
+            player.potions--;
+            player.hp = Math.min(50 + player.level * 5, player.hp + 20);
+            log("You used a Potion!");
+            updateStats();
+            battleMenu();
+          } else {
+            log("No potions left!");
+            battleMenu();
+          }
+        },
+        "Back": battleMenu
+      });
+    }
+
+    function catchMonster() {
+      if (player.pokeballs <= 0) {
+        log("No Pokéballs left!");
+        battleMenu();
+        return;
+      }
+      player.pokeballs--;
+      if (Math.random() < 0.4 + (0.1 * (player.level / 5))) {
+        log(`🎯 You caught ${enemy.name}!`);
+        player.captured.push(enemy.name);
+        updateStats();
+        mainMenu();
+      } else {
+        log(`${enemy.name} broke free!`);
+        attack();
+      }
+    }
+
+    function levelUp() {
+      player.level++;
+      player.xp = 0;
+      player.hp = 50 + player.level * 5;
+      log(`⭐ You leveled up! Now level ${player.level}!`);
+      if (player.monster.evolve && player.level === 5) {
+        log(`✨ ${player.monster.name} evolved into ${player.monster.evolve}!`);
+        player.monster.name = player.monster.evolve;
+      }
+    }
+
+    function heal() {
+      player.hp = 50 + player.level * 5;
+      log("✨ Fully healed!");
+      updateStats();
+      mainMenu();
+    }
+
+    function gymBattle() {
+      log("🏟️ You challenge a Gym Leader!");
+      enemy = { name: "Gym Leader's Titan", level: player.level + 3, hp: 60 + player.level * 5 };
+      battleMenu();
+    }
+
+    log("Starting PokéLite...");
+    const save = localStorage.getItem("pokelite_save");
+    if (save) {
+      player = JSON.parse(save);
+      log("📂 Save found. Loading...");
+      updateStats();
+      mainMenu();
+    } else {
+      startGame();
+    }
+  </script>
 </body>
 </html>
